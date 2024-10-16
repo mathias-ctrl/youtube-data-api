@@ -1,0 +1,7 @@
+youtube-dl
+pytube
+fastapi
+uvicorn
+google-auth-oauthlib
+google-auth-httplib2
+google-api-python-client
