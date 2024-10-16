@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled
 import os
 import logging
 import traceback
@@ -21,15 +21,23 @@ async def get_video_info(video_id: str):
         
         logger.info(f"Successfully retrieved info for video_id: {video_id}")
         
-        transcript = YouTubeTranscriptApi.get_transcript(video_id)
-        logger.info(f"Successfully retrieved transcript for video_id: {video_id}")
+        try:
+            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+            transcript = transcript_list.find_transcript(['pt', 'en'])  # Tenta português primeiro, depois inglês
+            transcript_text = " ".join([entry['text'] for entry in transcript.fetch()])
+        except TranscriptsDisabled:
+            logger.warning(f"No transcripts available for video_id: {video_id}")
+            transcript_text = "Transcript not available"
+        except Exception as e:
+            logger.error(f"Error retrieving transcript for video_id {video_id}: {str(e)}")
+            transcript_text = "Error retrieving transcript"
         
         result = {
             "title": info.get('title'),
             "description": info.get('description'),
             "thumbnail_url": info.get('thumbnail'),
             "tags": info.get('tags'),
-            "transcript": " ".join([entry['text'] for entry in transcript])
+            "transcript": transcript_text
         }
         logger.info(f"Successfully processed video_id: {video_id}")
         return result
